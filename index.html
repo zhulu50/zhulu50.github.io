@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>骑手服务平台 - 移动版</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --secondary-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --dark-bg: #0f172a;
+            --light-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* 头部导航 - 移动端优化 */
+        .header {
+            background: linear-gradient(120deg, var(--dark-bg) 0%, #1e293b 100%);
+            color: white;
+            padding: 12px 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 4px solid var(--accent-orange);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo {
+            background-color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .logo img {
+            width: 30px;
+            height: 30px;
+        }
+        
+        .title-container h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 2px;
+        }
+        
+        .title-container p {
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+        
+        .nav-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            width: 40px;
+            height: 40px;
+        }
+        
+        .nav-btn.active {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        
+        .nav-btn i {
+            font-size: 18px;
+        }
+        
+        /* 移动端侧边栏触发按钮 */
+        .mobile-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 500;
+            background: var(--primary-blue);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-toggle.active {
+            transform: rotate(90deg);
+            background: var(--accent-orange);
+        }
+        
+        /* 主内容区 - 移动端优化 */
+        .content-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding-top: 64px;
+        }
+        
+        /* 侧边栏 - 移动端抽屉式 */
+        .sidebar {
+            background-color: var(--card-bg);
+            padding: 15px 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: fixed;
+            top: 64px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 64px);
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+            z-index: 400;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border-top: 1px solid var(--border);
+        }
+        
+        .sidebar.active {
+            transform: translateY(0);
+        }
+        
+        .panel {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title i {
+            background: #dbeafe;
+            padding: 6px;
+            border-radius: 8px;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-blue);
+        }
+        
+        .view-more {
+            font-size: 14px;
+            color: var(--primary-blue);
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        /* 休息站卡片 - 移动端优化 */
+        .station-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .station-item {
+            display: flex;
+            padding: 14px;
+            background: #f8fafc;
+            border-radius: 14px;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .station-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-blue);
+            font-size: 24px;
+        }
+        
+        .station-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        
+        .station-name {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .station-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-light);
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .station-features {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .feature-tag {
+            background: #dbeafe;
+            color: var(--primary-blue);
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .station-status {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--accent-green);
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 0 0 0 12px;
+        }
+        
+        /* 社保政策卡片 - 移动端优化 */
+        .benefit-item {
+            padding: 16px 14px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            background: #f8fafc;
+            position: relative;
+            overflow: hidden;
+            border-left: 4px solid var(--primary-blue);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.03);
+        }
+        
+        .benefit-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .benefit-title i {
+            color: var(--primary-blue);
+            font-size: 20px;
+        }
+        
+        .benefit-desc {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        
+        .learn-more {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            color: var(--primary-blue);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        /* 地图区域 - 移动端优化 */
+        .map-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: #f1f5f9;
+            height: 100%;
+            width: 100%;
+        }
+        
+        .map-toolbar {
+            background: var(--card-bg);
+            padding: 12px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .search-box {
+            flex-grow: 1;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--light-bg);
+            transition: all 0.3s ease;
+        }
+        
+        .search-box input {
+            border: none;
+            outline: none;
+            font-size: 16px;
+            flex-grow: 1;
+            background: transparent;
+        }
+        
+        .search-box i {
+            color: var(--text-light);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .action-btn {
+            background: var(--light-bg);
+            color: var(--text-dark);
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .action-btn.active, .action-btn:hover {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+        
+        .map-view {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            background: #e5e7eb;
+        }
+        
+        .map-overlay {
+            position: absolute;
+            bottom: 100px;
+            left: 10px;
+            right: 10px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+            max-height: 160px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .overlay-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .overlay-content {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .data-card {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .data-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 4px;
+        }
+        
+        .data-label {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        
+        .map-footer {
+            background: var(--card-bg);
+            padding: 14px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.03);
+        }
+        
+        .location-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .location-info i {
+            font-size: 18px;
+            color: var(--primary-blue);
+        }
+        
+        .location-text {
+            font-size: 14px;
+            color: var(--text-dark);
+            line-height: 1.4;
+        }
+        
+        .location-text strong {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+        
+        .footer-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .footer-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .primary-btn {
+            background: var(--primary-blue);
+            color: white;
+            box-shadow: 0 3px 8px rgba(37, 99, 235, 0.2);
+        }
+        
+        .secondary-btn {
+            background: white;
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+        }
+        
+        /* 地图标记图例 - 移动端优化 */
+        .map-legend {
+            position: absolute;
+            bottom: 180px;
+            left: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px;
+            z-index: 20;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .legend-title {
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* 定位权限提示 - 移动端优化 */
+        .permission-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 1000;
+            width: calc(100% - 30px);
+            max-width: 400px;
+            text-align: center;
+            display: none;
+        }
+        
+        .permission-icon {
+            font-size: 40px;
+            color: var(--primary-blue);
+            margin-bottom: 15px;
+        }
+        
+        .permission-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-dark);
+        }
+        
+        .permission-desc {
+            font-size: 15px;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .permission-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .permission-btn {
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            flex: 1;
+        }
+        
+        .permission-allow {
+            background: var(--primary-blue);
+            color: white;
+        }
+        
+        .permission-deny {
+            background: #f1f5f9;
+            color: var(--text-dark);
+        }
+        
+        /* 移动端特有功能 */
+        .map-controls {
+            position: absolute;
+            bottom: 100px;
+            right: 15px;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .map-control {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .map-control:hover {
+            background: var(--primary-blue);
+            color: white;
+        }
+        
+        /* 时间显示样式 */
+        .time-display {
+            font-weight: 600;
+            color: var(--primary-blue);
+            font-size: 13px;
+        }
+        
+        /* 适配小屏幕手机 */
+        @media (max-width: 480px) {
+            .header {
+                padding: 10px 12px;
+            }
+            
+            .logo {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .title-container h1 {
+                font-size: 16px;
+            }
+            
+            .panel-title {
+                font-size: 16px;
+            }
+            
+            .panel-title i {
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+            }
+            
+            .station-image {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .station-name {
+                font-size: 15px;
+            }
+            
+            .station-details {
+                font-size: 12px;
+            }
+            
+            .benefit-item {
+                padding: 14px 12px;
+            }
+            
+            .benefit-desc {
+                font-size: 13px;
+            }
+            
+            .learn-more {
+                font-size: 13px;
+            }
+            
+            .location-text {
+                font-size: 13px;
+            }
+            
+            .footer-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-helmet-safety" style="font-size: 24px; color: #2563eb;"></i>
+            </div>
+            <div class="title-container">
+                <h1>“骑”迹守护</h1>
+                <p>当前时间: <span id="header-time" class="time-display">2025年8月9日 10:41:31</span></p>
+            </div>
+        </div>
+        
+        <div class="nav-controls">
+            <a href="#" class="nav-btn active" id="mapBtn">
+                <i class="fas fa-map"></i>
+            </a>
+            <a href="#" class="nav-btn" id="userBtn">
+                <i class="fas fa-user"></i>
+            </a>
+            <a href="#" class="nav-btn" id="lawBtn">
+                <i class="fas fa-balance-scale"></i>
+            </a>
+        </div>
+    </header>
+    
+    <!-- 移动端侧边栏触发按钮 -->
+    <div class="mobile-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </div>
+    
+    <!-- 主内容区 -->
+    <div class="content-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar" id="sidebar">
+            <!-- 休息站面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-store"></i>
+                        <span>附近休息站点</span>
+                    </div>
+                    <span class="view-more">查看全部</span>
+                </div>
+                <div class="station-list">
+                    <div class="station-item">
+                        <div class="station-status">空闲中</div>
+                        <div class="station-image">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div class="station-info">
+                            <div class="station-name">西湖公园休息站</div>
+                            <div class="station-details">
+                                <span>距离: 350m</span>
+                                <span>开放: <span class="time-display">7:00-22:00</span></span>
+                            </div>
+                            <div class="station-features">
+                                <span class="feature-tag">充电</span>
+                                <span class="feature-tag">饮水</span>
+                                <span class="feature-tag">医疗箱</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="station-item">
+                        <div class="station-status">较繁忙</div>
+                        <div class="station-image">
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="station-info">
+                            <div class="station-name">回雁峰服务站</div>
+                            <div class="station-details">
+                                <span>距离: 500m</span>
+                                <span>开放: <span class="time-display">6:30-23:00</span></span>
+                            </div>
+                            <div class="station-features">
+                                <span class="feature-tag">WiFi</span>
+                                <span class="feature-tag">餐厅</span>
+                                <span class="feature-tag">休息区</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="station-item">
+                        <div class="station-status">空闲中</div>
+                        <div class="station-image">
+                            <i class="fas fa-umbrella-beach"></i>
+                        </div>
+                        <div class="station-info">
+                            <div class="station-name">湘江风光带休息点</div>
+                            <div class="station-details">
+                                <span>距离: 1.5km</span>
+                                <span>开放: <span class="time-display">全天</span></span>
+                            </div>
+                            <div class="station-features">
+                                <span class="feature-tag">绿地长椅</span>
+                                <span class="feature-tag">自动售货机</span>
+                                <span class="feature-tag">观景台</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 社保政策面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>骑手保障政策</span>
+                    </div>
+                </div>
+                <div class="benefits-container">
+                    <div class="benefit-item">
+                        <div class="benefit-title">
+                            <i class="fas fa-umbrella"></i>
+                            <div>意外伤害保险</div>
+                        </div>
+                        <div class="benefit-desc">
+                            平台为所有骑手购买最高50万意外险，工作时间全覆盖，包含接送单途中的所有意外事故。
+                            <div class="learn-more" onclick="openInsurancePage()">
+                                <i class="fas fa-external-link-alt"></i> 了解更多
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-title">
+                            <i class="fas fa-heartbeat"></i>
+                            <div>健康体检福利</div>
+                        </div>
+                        <div class="benefit-desc">
+                            每月累计接单超过200单，可申请三甲医院体检套餐（价值600元），全年有效。
+                            <div class="learn-more">
+                                <i class="fas fa-external-link-alt"></i> 了解更多
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据统计面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-chart-line"></i>
+                        <span>今日服务数据</span>
+                    </div>
+                </div>
+                <div class="station-list">
+                    <div class="station-item">
+                        <div class="station-image" style="background-color: #f0f9ff;">
+                            <i class="fas fa-shipping-fast" style="color: #0ea5e9;"></i>
+                        </div>
+                        <div class="station-info">
+                            <div class="station-name">配送统计</div>
+                            <div class="station-details">
+                                <span>已完成: 185单</span>
+                                <span>进行中: 42单</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="station-item">
+                        <div class="station-image" style="background-color: #fffbeb;">
+                            <i class="fas fa-users" style="color: #f59e0b;"></i>
+                        </div>
+                        <div class="station-info">
+                            <div class="station-name">骑手状态</div>
+                            <div class="station-details">
+                                <span>在线: 78人</span>
+                                <span>休息中: 22人</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地图区域 -->
+        <div class="map-container">
+            <!-- 地图工具栏 -->
+            <div class="map-toolbar">
+                <div class="search-container">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="搜索休息站点...">
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="action-btn active">
+                        <i class="fas fa-motorcycle"></i> 骑手
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-store"></i> 休息站
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-route"></i> 路径
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 地图显示区域 -->
+            <div class="map-view">
+                <div id="map"></div>
+                
+                <!-- 地图控制按钮 -->
+                <div class="map-controls">
+                    <div class="map-control" id="locateBtn">
+                        <i class="fas fa-location-arrow"></i>
+                    </div>
+                    <div class="map-control" id="legendBtn">
+                        <i class="fas fa-map-legend"></i>
+                    </div>
+                    <div class="map-control" id="infoBtn">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                </div>
+                
+                <!-- 地图覆盖层信息 -->
+                <div class="map-overlay" id="mapOverlay">
+                    <div class="overlay-title">
+                        <i class="fas fa-location-dot"></i>
+                        骑手位置信息
+                    </div>
+                    <div class="overlay-content">
+                        <div class="data-card">
+                            <div class="data-value" id="distance-value">350m</div>
+                            <div class="data-label">距离最近休息站</div>
+                        </div>
+                        <div class="data-card">
+                            <div class="data-value" id="speed-value">12 km/h</div>
+                            <div class="data-label">当前速度</div>
+                        </div>
+                        <div class="data-card">
+                            <div class="data-value" id="accuracy-value">15米</div>
+                            <div class="data-label">定位精度</div>
+                        </div>
+                        <div class="data-card">
+                            <div class="data-value" id="time-value">14:26:03</div>
+                            <div class="data-label">定位更新时间</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 地图图例 -->
+                <div class="map-legend" id="mapLegend">
+                    <div class="legend-title">
+                        <i class="fas fa-map-legend"></i> 地图图例
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon user-icon"></div>
+                        <div>您的位置</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon station-icon"></div>
+                        <div>休息站</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon hospital-icon"></div>
+                        <div>医院</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon education-icon"></div>
+                        <div>学校/机构</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 地图底部信息 -->
+            <div class="map-footer">
+                <div class="location-info">
+                    <i class="fas fa-location-dot"></i>
+                    <div class="location-text">
+                        当前位置：<strong id="current-location">衡阳市西湖公园</strong> |
+                        最近站点：<strong id="nearest-station">西湖公园休息站</strong> |
+                        时间：<strong id="current-time" class="time-display">14:26:03</strong>
+                    </div>
+                </div>
+                
+                <div class="footer-actions">
+                    <button class="footer-btn secondary-btn">
+                        <i class="fas fa-directions"></i> 导航
+                    </button>
+                    <button class="footer-btn primary-btn">
+                        <i class="fas fa-phone-alt"></i> 求助
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 定位权限提示模态框 -->
+    <div class="permission-modal" id="permissionModal">
+        <div class="permission-icon">
+            <i class="fas fa-location-dot"></i>
+        </div>
+        <div class="permission-title">位置访问请求</div>
+        <div class="permission-desc">
+            骑手服务平台请求获取您的位置信息，以便为您提供更准确的附近服务站点和实时导航服务。
+        </div>
+        <div class="permission-buttons">
+            <button class="permission-btn permission-allow" id="allowLocation">允许访问</button>
+            <button class="permission-btn permission-deny" id="denyLocation">拒绝</button>
+        </div>
+    </div>
+
+    <script>
+        // 初始化地图
+        function initMap() {
+            // 创建地图实例
+            const map = L.map('map').setView([26.8967, 112.5851], 13);
+            
+            // 添加自定义的瓦片图层
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // 模拟添加休息站点标记
+            const stations = [
+                {name: "西湖公园休息站", lat: 26.897, lng: 112.577},
+                {name: "回雁峰服务站", lat: 26.902, lng: 112.601},
+                {name: "湘江风光带休息点", lat: 26.905, lng: 112.585}
+            ];
+            
+            stations.forEach(station => {
+                L.marker([station.lat, station.lng], {
+                    icon: L.divIcon({
+                        className: 'station-marker',
+                        html: `<div style="background:#10b981; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(16, 185, 129, 0.3); border:2px solid white; position:relative;">
+                            <i class="fas fa-store" style="color:white; font-size:12px;"></i>
+                        </div>`,
+                        iconSize: [24, 24],
+                        popupAnchor: [0, -12]
+                    })
+                }).addTo(map).bindPopup(station.name);
+            });
+            
+            // 显示定位权限提示
+            showLocationPermissionModal();
+        }
+        
+        // 显示定位权限提示
+        function showLocationPermissionModal() {
+            const modal = document.getElementById('permissionModal');
+            modal.style.display = 'block';
+        }
+        
+        // 隐藏定位权限提示
+        function hideLocationPermissionModal() {
+            const modal = document.getElementById('permissionModal');
+            modal.style.display = 'none';
+        }
+        
+        // 更新当前时间（北京时间）
+        function updateCurrentTime() {
+            const now = new Date();
+            // 计算北京时间（UTC+8）
+            const beijingTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
+            
+            const year = beijingTime.getFullYear();
+            const month = (beijingTime.getMonth() + 1).toString().padStart(2, '0');
+            const day = beijingTime.getDate().toString().padStart(2, '0');
+            const hours = beijingTime.getHours().toString().padStart(2, '0');
+            const minutes = beijingTime.getMinutes().toString().padStart(2, '0');
+            const seconds = beijingTime.getSeconds().toString().padStart(2, '0');
+            
+            const fullTimeString = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            
+            // 更新页面上的所有时间显示
+            document.getElementById('header-time').textContent = fullTimeString;
+            document.getElementById('current-time').textContent = timeString;
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000); // 每秒更新一次时间
+            
+            // 侧边栏切换
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                sidebarToggle.classList.toggle('active');
+            });
+            
+            // 定位按钮事件
+            document.getElementById('locateBtn').addEventListener('click', function() {
+                alert('定位功能已开启，正在获取您的位置...');
+            });
+            
+            // 地图图例按钮
+            document.getElementById('legendBtn').addEventListener('click', function() {
+                const legend = document.getElementById('mapLegend');
+                legend.style.display = legend.style.display === 'block' ? 'none' : 'block';
+                document.getElementById('mapOverlay').style.display = 'none';
+            });
+            
+            // 地图信息按钮
+            document.getElementById('infoBtn').addEventListener('click', function() {
+                const overlay = document.getElementById('mapOverlay');
+                overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
+                document.getElementById('mapLegend').style.display = 'none';
+            });
+            
+            // 处理定位权限请求
+            document.getElementById('allowLocation').addEventListener('click', function() {
+                hideLocationPermissionModal();
+                alert('位置服务已启用，正在获取您的位置...');
+            });
+            
+            document.getElementById('denyLocation').addEventListener('click', function() {
+                hideLocationPermissionModal();
+                alert('位置服务被拒绝，部分功能可能受限。');
+            });
+            
+            // 导航按钮事件
+            document.querySelector('.footer-btn.secondary-btn').addEventListener('click', function() {
+                alert('正在导航至最近的休息站点...');
+            });
+            
+            // 求助按钮事件
+            document.querySelector('.footer-btn.primary-btn').addEventListener('click', function() {
+                alert('紧急求助电话已拨打：13800008888');
+            });
+        });
+    </script>
+</body>
+</html>
